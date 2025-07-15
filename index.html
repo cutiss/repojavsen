@@ -1,90 +1,101 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Canvas UI</title>
+  <meta charset="UTF-8" />
+  <title>Canvas UI Example</title>
   <style>
-    canvas {
-      border: 1px solid #ccc;
-      display: block;
-      margin: 0 auto;
-    }
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; background: #fff; }
   </style>
 </head>
 <body>
 <canvas id="canvas" width="1344" height="634"></canvas>
-
 <script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-const inputBox = { x: 535, y: 409, width: 300, height: 40 };
-const buttonBox = { x: 535, y: 470, width: 300, height: 50 };
+const bgImage = new Image();
+bgImage.src = 'background.png'; // Use your uploaded image name here
 
-let userInput = '';
+// Input box dimensions (adjust as needed)
+const inputBox = { x: 526, y: 407, width: 294, height: 44 };
+let inputText = '';
 let isTyping = false;
 
-const bgImage = new Image();
-bgImage.src = 'background.png';
-bgImage.onload = () => drawUI();
+// Button dimensions
+const button = { x: 526, y: 481, width: 294, height: 44 };
 
-function drawUI() {
+bgImage.onload = () => {
+  draw();
+};
+
+function draw() {
   ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+  // Draw input box
   ctx.fillStyle = '#fff';
   ctx.fillRect(inputBox.x, inputBox.y, inputBox.width, inputBox.height);
   ctx.strokeStyle = '#ccc';
   ctx.strokeRect(inputBox.x, inputBox.y, inputBox.width, inputBox.height);
-  ctx.fillStyle = '#000';
-  ctx.font = '16px Arial';
-  ctx.fillText(userInput, inputBox.x + 10, inputBox.y + 25);
 
+  ctx.fillStyle = inputText ? '#000' : '#aaa';
+  ctx.font = '20px Arial';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(inputText || 'Enter email', inputBox.x + 10, inputBox.y + inputBox.height / 2);
+
+  // Draw button
   ctx.fillStyle = '#0078d4';
-  ctx.fillRect(buttonBox.x, buttonBox.y, buttonBox.width, buttonBox.height);
+  ctx.fillRect(button.x, button.y, button.width, button.height);
   ctx.fillStyle = '#fff';
   ctx.font = '20px Arial';
-  ctx.fillText('Next', buttonBox.x + 125, buttonBox.y + 32);
+  ctx.textAlign = 'center';
+  ctx.fillText('Next', button.x + button.width / 2, button.y + button.height / 2 + 3);
+
+  ctx.textAlign = 'start';
 }
 
-canvas.addEventListener('mousedown', (e) => {
+canvas.addEventListener('click', (e) => {
   const rect = canvas.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
 
-  if (mouseX >= inputBox.x && mouseX <= inputBox.x + inputBox.width &&
-      mouseY >= inputBox.y && mouseY <= inputBox.y + inputBox.height) {
+  if (x >= inputBox.x && x <= inputBox.x + inputBox.width &&
+      y >= inputBox.y && y <= inputBox.y + inputBox.height) {
     isTyping = true;
   } else {
     isTyping = false;
   }
 
-  if (mouseX >= buttonBox.x && mouseX <= buttonBox.x + buttonBox.width &&
-      mouseY >= buttonBox.y && mouseY <= buttonBox.y + buttonBox.height) {
-    sendEmail(userInput);
+  if (x >= button.x && x <= button.x + button.width &&
+      y >= button.y && y <= button.y + button.height) {
+    if (!inputText) {
+      alert('Please enter an email!');
+      return;
+    }
+    // Send email to backend
+    fetch('/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: inputText })
+    })
+    .then(res => res.json())
+    .then(data => alert(data.message))
+    .catch(err => alert('Error: ' + err));
   }
 });
 
 document.addEventListener('keydown', (e) => {
   if (isTyping) {
     if (e.key === 'Backspace') {
-      userInput = userInput.slice(0, -1);
+      inputText = inputText.slice(0, -1);
     } else if (e.key.length === 1) {
-      userInput += e.key;
+      inputText += e.key;
+    } else if (e.key === 'Enter') {
+      isTyping = false;
     }
-    drawUI();
+    draw();
   }
 });
-
-function sendEmail(email) {
-  fetch('/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  })
-  .then(res => res.json())
-  .then(data => alert(data.message))
-  .catch(err => alert("Error sending email."));
-}
 </script>
 </body>
 </html>
