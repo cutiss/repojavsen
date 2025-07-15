@@ -1,31 +1,35 @@
-// server.js
 const express = require('express');
 const nodemailer = require('nodemailer');
 const path = require('path');
-const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static('public'));
-app.use(bodyParser.json());
+// Serve static files (your canvas HTML)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 app.post('/send-email', async (req, res) => {
   const { email } = req.body;
 
-  const transporter = nodemailer.createTransport({
+  if (!email) {
+    return res.status(400).json({ message: 'No email provided.' });
+  }
+
+  // Use your environment vars
+  let transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_FROM,
-      pass: process.env.EMAIL_PASS
+      user: process.env.GMAIL_USER, 
+      pass: process.env.GMAIL_PASS 
     }
   });
 
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: process.env.EMAIL_TO || 'your@email.com',
-    subject: 'New Email Entered',
+  let mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: process.env.RECIPIENT_EMAIL,
+    subject: 'Canvas Form Submission',
     text: `User entered email: ${email}`
   };
 
@@ -34,8 +38,10 @@ app.post('/send-email', async (req, res) => {
     res.json({ message: 'Email sent successfully!' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Failed to send email.' });
+    res.status(500).json({ message: 'Error sending email.' });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
